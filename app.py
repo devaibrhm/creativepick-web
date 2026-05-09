@@ -7,10 +7,9 @@ import io
 import zipfile
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
-from PIL import Image, ImageOps
+from PIL import Image
 
 # ==========================================
 # 1. KONFIGURASI & STYLE (DARK MODE, PORTRAIT & STICKY BAR)
@@ -89,28 +88,29 @@ def apply_custom_style():
         /* SIDEBAR STYLING */
         [data-testid="stSidebar"] { background-color: rgba(15, 12, 41, 0.95); border-right: 1px solid #4a00e0; }
         </style>
-        """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 # ==========================================
 # 2. SISTEM GOOGLE DRIVE & PROCESSING
 # ==========================================
 def get_gdrive_service():
     creds = None
-    if os.path.exists('token.json'):
+    if "gdrive_token" in st.secrets:
+        token_data = json.loads(st.secrets["gdrive_token"])
+        creds = Credentials.from_authorized_user_info(token_data, SCOPES)
+    elif os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            if not os.path.exists('credentials.json'):
-                st.error("Missing 'credentials.json'!")
-                st.stop()
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.json', 'w') as token: token.write(creds.to_json())
+            st.error("Kunci Akses Google Drive tidak valid!")
+            st.stop()
+            
     return build('drive', 'v3', credentials=creds)
 
-@st.cache_data(show_spinner=False)
+@st.cache_data(show_spinner=False, ttl=3600)
 def get_processed_image(file_id):
     try:
         service = get_gdrive_service()
@@ -118,19 +118,25 @@ def get_processed_image(file_id):
         fh = io.BytesIO()
         downloader = MediaIoBaseDownload(fh, request)
         done = False
-        while not done: status, done = downloader.next_chunk()
-        img = Image.open(io.BytesIO(fh.getvalue()))
-        return ImageOps.exif_transpose(img)
-    except: return None
+        while not done:
+            _, done = downloader.next_chunk()
+        fh.seek(0)
+        return Image.open(fh)
+    except Exception as e:
+        return None
 
-def manage_db(mode="read", name=None, folder_id=None):
+def manage_db(action="read", name=None, fid=None):
     if not os.path.exists(DB_FILE):
-        with open(DB_FILE, "w") as f: json.dump({}, f)
-    with open(DB_FILE, "r") as f: projects = json.load(f)
-    if mode == "write" and name and folder_id:
-        projects[name] = folder_id
-        with open(DB_FILE, "w") as f: json.dump(projects, f)
-    return projects
+        with open(DB_FILE, 'w') as f:
+            json.dump({}, f)
+    with open(DB_FILE, 'r') as f:
+        data = json.load(f)
+        
+    if action == "write":
+        data[name] = fid
+        with open(DB_FILE, 'w') as f:
+            json.dump(data, f)
+    return data
 
 # ==========================================
 # 3. HALAMAN CLIENT (DENGAN STICKY BAR)
@@ -138,14 +144,13 @@ def manage_db(mode="read", name=None, folder_id=None):
 def page_client(folder_id):
     apply_custom_style()
     
-    if 'pilihan' not in st.session_state: st.session_state['pilihan'] = []
+    if 'pilihan' not in st.session_state: 
+        st.session_state['pilihan'] = []
 
-    # Sidebar (Tetap ada sebagai opsi melihat list lengkap)
     st.sidebar.title("📋 Konfirmasi")
     txt_pilihan = "\n".join(st.session_state['pilihan'])
     st.sidebar.text_area("File terpilih:", value=txt_pilihan, height=250)
     
-    # URL WhatsApp Encode
     pesan_wa = urllib.parse.quote(f"Halo Playkamera! Ini list foto pilihan saya:\n\n{txt_pilihan}")
 
     if st.session_state.get("logged_in"):
@@ -166,19 +171,20 @@ def page_client(folder_id):
             st.warning("⚠️ Folder kosong.")
         else:
             col_a, col_b = st.columns([3, 1])
-            with col_a: st.write(f"Silakan pilih foto terbaik Anda.")
+            with col_a: 
+                st.write("Silakan pilih foto terbaik Anda.")
             with col_b: 
                 if st.button("Reset"):
                     st.session_state['pilihan'] = []
                     st.rerun()
 
-            # GRID FOTO
             cols = st.columns(2)
             for idx, item in enumerate(items):
                 with cols[idx % 2]:
                     st.markdown('<div class="img-container">', unsafe_allow_html=True)
                     img_data = get_processed_image(item['id'])
-                    if img_data: st.image(img_data, use_container_stretch=True)
+                    if img_data: 
+                        st.image(img_data, width="stretch")
                     st.markdown('</div>', unsafe_allow_html=True)
 
                     st.markdown(f'<div class="filename-bar">{item["name"]}</div>', unsafe_allow_html=True)
@@ -189,14 +195,13 @@ def page_client(folder_id):
 
                     st.markdown(f'<div class="pilih-btn-wrap {btn_class}">', unsafe_allow_html=True)
                     if st.button(label, key=f"s_{item['id']}"):
-                        if is_sel: st.session_state['pilihan'].remove(item['name'])
-                        else: st.session_state['pilihan'].append(item['name'])
+                        if is_sel: 
+                            st.session_state['pilihan'].remove(item['name'])
+                        else: 
+                            st.session_state['pilihan'].append(item['name'])
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
                     
-            # --- RENDER STICKY BOTTOM BAR ---
-            # Bar ini akan selalu melayang di bawah layar klien
-            # Pastikan ganti nomor HP di bagian href "wa.me/628xxx" 
             sticky_html = f"""
             <div class="sticky-bottom-bar">
                 <div class="sticky-text">✅ Terpilih: {len(st.session_state['pilihan'])}/100</div>
@@ -213,7 +218,8 @@ def page_client(folder_id):
 # ==========================================
 def page_admin():
     apply_custom_style()
-    if "logged_in" not in st.session_state: st.session_state["logged_in"] = False
+    if "logged_in" not in st.session_state: 
+        st.session_state["logged_in"] = False
     
     if not st.session_state["logged_in"]:
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -232,7 +238,6 @@ def page_admin():
     st.title("👨‍💻 Dashboard Fotografer")
     st.sidebar.button("Log Out", on_click=lambda: st.session_state.update({"logged_in": False}))
     
-    # WORKFLOW DOWNLOAD ZIP
     st.sidebar.divider()
     st.sidebar.header("📥 Download Project")
     dl_folder_id = st.sidebar.text_input("ID Folder Project", placeholder="Paste Folder ID GDrive")
@@ -256,7 +261,8 @@ def page_admin():
                             fh = io.BytesIO()
                             downloader = MediaIoBaseDownload(fh, request)
                             done = False
-                            while not done: _, done = downloader.next_chunk()
+                            while not done: 
+                                _, done = downloader.next_chunk()
                             zip_file.writestr(res[0]['name'], fh.getvalue())
                             files_found += 1
                             st.write(f"✅ Diambil: {res[0]['name']}")
@@ -268,11 +274,11 @@ def page_admin():
                 zip_buffer.seek(0)
                 st.sidebar.download_button(
                     label="💾 Download ZIP Sekarang", data=zip_buffer,
-                    file_name="pilihan_client.zip", mime="application/zip", use_container_stretch=True
+                    file_name="pilihan_client.zip", mime="application/zip", use_container_width=True
                 )
-            else: st.sidebar.error("File tidak ditemukan.")
+            else: 
+                st.sidebar.error("File tidak ditemukan.")
 
-    # TAB MANAJEMEN PROJECT
     tab1, tab2 = st.tabs(["➕ Buat Project", "📂 Riwayat"])
     with tab1:
         c_name = st.text_input("Nama Client")
@@ -299,5 +305,7 @@ def page_admin():
 # ==========================================
 if __name__ == "__main__":
     fid_param = st.query_params.get("folder")
-    if fid_param: page_client(fid_param)
-    else: page_admin()
+    if fid_param: 
+        page_client(fid_param)
+    else: 
+        page_admin()
