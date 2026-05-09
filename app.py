@@ -19,7 +19,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 DB_FILE = "projects.json"
 ADMIN_USER = "admin"
 ADMIN_PASS = "playkamera123"
-BASE_URL = "https://creativepick.streamlit.app" 
+BASE_URL = "https://creativepick.streamlit.app"
 
 def apply_custom_style():
     st.markdown("""
@@ -178,7 +178,7 @@ def page_client(folder_id):
                 with cols[idx % 2]:
                     st.markdown('<div class="img-container">', unsafe_allow_html=True)
                     img_data = get_processed_image(item['id'])
-                    if img_data: st.image(img_data, use_container_width=True)
+                    if img_data: st.image(img_data, use_container_stretch=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
                     st.markdown(f'<div class="filename-bar">{item["name"]}</div>', unsafe_allow_html=True)
@@ -268,7 +268,7 @@ def page_admin():
                 zip_buffer.seek(0)
                 st.sidebar.download_button(
                     label="💾 Download ZIP Sekarang", data=zip_buffer,
-                    file_name="pilihan_client.zip", mime="application/zip", use_container_width=True
+                    file_name="pilihan_client.zip", mime="application/zip", use_container_stretch=True
                 )
             else: st.sidebar.error("File tidak ditemukan.")
 
