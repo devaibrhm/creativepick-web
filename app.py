@@ -19,7 +19,7 @@ SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 DB_FILE = "projects.json"
 ADMIN_USER = "admin"
 ADMIN_PASS = "playkamera123"
-BASE_URL = "https://creative-pick.streamlit.app" 
+BASE_URL = "https://creativepick.streamlit.app" 
 
 def apply_custom_style():
     st.markdown("""
