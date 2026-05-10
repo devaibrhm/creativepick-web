@@ -5,6 +5,7 @@ import json
 import urllib.parse
 import io
 import zipfile
+import datetime
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -332,7 +333,6 @@ def page_admin():
     with sc1:
         st.markdown(f'<div class="stat-card"><div class="stat-number">{len(projects)}</div><div class="stat-label">📂 Total Project</div></div>', unsafe_allow_html=True)
     with sc2:
-        import datetime
         today = datetime.date.today().strftime("%d %b %Y")
         st.markdown(f'<div class="stat-card"><div class="stat-number" style="font-size:20px">{today}</div><div class="stat-label">📅 Hari Ini</div></div>', unsafe_allow_html=True)
     with sc3:
