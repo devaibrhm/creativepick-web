@@ -18,7 +18,7 @@ from PIL import Image
 SCOPES = ['https://www.googleapis.com/auth/drive.readonly']
 DB_FILE = "projects.json"
 ADMIN_USER = "admin"
-ADMIN_PASS = "playkamera123"
+ADMIN_PASS = "admin"
 BASE_URL = "https://creativepick.streamlit.app"
 
 def apply_custom_style():
@@ -53,6 +53,17 @@ def apply_custom_style():
         .sticky-btn{background:linear-gradient(135deg,#06b6d4,#8b5cf6);color:#fff!important;text-decoration:none!important;padding:12px 28px;border-radius:50px;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(139,92,246,0.4);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.3px}
         .sticky-btn:hover{filter:brightness(1.15);transform:scale(1.05) translateY(-2px);box-shadow:0 8px 30px rgba(139,92,246,0.5)}
         [data-testid="stSidebar"]{background:rgba(10,8,30,0.95)!important;backdrop-filter:blur(20px);border-right:1px solid rgba(139,92,246,0.3)!important}
+        [data-testid="collapsedControl"]{display:none!important}
+        [data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"]{display:none!important}
+        button[kind="headerNoPadding"]{display:none!important}
+        .stSidebar [data-testid="stMarkdownContainer"] p{font-size:14px}
+        .sidebar-wa-btn{display:block;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff!important;text-decoration:none!important;padding:14px 20px;border-radius:14px;font-weight:600;font-size:15px;text-align:center;box-shadow:0 4px 15px rgba(37,211,102,0.3);transition:all 0.3s ease;margin:10px 0}
+        .sidebar-wa-btn:hover{filter:brightness(1.1);transform:translateY(-2px);box-shadow:0 6px 20px rgba(37,211,102,0.4)}
+        .counter-badge{background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.3);border-radius:12px;padding:10px 14px;text-align:center;margin:8px 0}
+        .counter-num{font-size:24px;font-weight:700;color:#a78bfa}
+        .counter-label{font-size:11px;color:#8888aa;margin-top:2px}
+        .photo-count-bar{background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+        .photo-count-text{color:#c4b5fd;font-size:14px;font-weight:500}
         [data-testid="stSidebar"] .stButton button{background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;color:#fff!important;border:none!important;border-radius:12px!important;font-weight:600!important;transition:all 0.3s ease!important}
         [data-testid="stSidebar"] .stButton button:hover{transform:translateY(-2px)!important;filter:brightness(1.1)!important}
         .stTextInput input,.stTextArea textarea{background:rgba(30,20,60,0.6)!important;border:1px solid rgba(139,92,246,0.3)!important;border-radius:12px!important;color:#e8e8f0!important;transition:border-color 0.3s ease!important}
@@ -116,10 +127,14 @@ def apply_custom_style():
 # ==========================================
 def get_gdrive_service():
     creds = None
-    if "gdrive_token" in st.secrets:
-        token_data = json.loads(st.secrets["gdrive_token"])
-        creds = Credentials.from_authorized_user_info(token_data, SCOPES)
-    elif os.path.exists('token.json'):
+    try:
+        if "gdrive_token" in st.secrets:
+            token_data = json.loads(st.secrets["gdrive_token"])
+            creds = Credentials.from_authorized_user_info(token_data, SCOPES)
+    except Exception:
+        pass
+    
+    if not creds and os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
     
     if not creds or not creds.valid:
@@ -166,18 +181,82 @@ def manage_db(action="read", name=None, fid=None):
 # ==========================================
 # 3. HALAMAN CLIENT (DENGAN STICKY BAR)
 # ==========================================
+WA_NUMBER = "628xxx"  # Ganti dengan nomor WhatsApp fotografer
+
 def page_client(folder_id):
     apply_custom_style()
     
     if 'pilihan' not in st.session_state: 
         st.session_state['pilihan'] = []
+    if 'max_pilihan' not in st.session_state:
+        st.session_state['max_pilihan'] = 50
 
-    st.sidebar.title("📋 Konfirmasi")
-    txt_pilihan = "\n".join(st.session_state['pilihan'])
-    st.sidebar.text_area("File terpilih:", value=txt_pilihan, height=250)
+    # --- SIDEBAR ---
+    st.sidebar.markdown("""
+        <div style="text-align:center;margin-bottom:12px;">
+            <div style="font-size:22px;font-weight:700;background:linear-gradient(135deg,#a855f7,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">📸 Creative.pick</div>
+            <div style="font-size:12px;color:#8888aa;margin-top:4px;">Pilih foto terbaik Anda</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Counter badge
+    jml = len(st.session_state['pilihan'])
+    max_p = st.session_state['max_pilihan']
+    st.sidebar.markdown(f"""
+        <div class="counter-badge">
+            <div class="counter-num">{jml} / {max_p}</div>
+            <div class="counter-label">Foto Terpilih</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Max selection option
+    max_option = st.sidebar.selectbox(
+        "📊 Maks Pilihan Foto",
+        options=[50, 100],
+        index=0 if st.session_state['max_pilihan'] == 50 else 1,
+        key="max_select_box"
+    )
+    if max_option != st.session_state['max_pilihan']:
+        st.session_state['max_pilihan'] = max_option
+        st.rerun()
+
+    st.sidebar.divider()
+
+    # Preview selected files
+    st.sidebar.markdown('<div style="font-size:14px;font-weight:600;color:#c4b5fd;margin-bottom:8px;">📋 Preview Foto Terpilih</div>', unsafe_allow_html=True)
     
-    pesan_wa = urllib.parse.quote(f"Halo Playkamera! Ini list foto pilihan saya:\n\n{txt_pilihan}")
+    # WhatsApp message
+    list_text = "\n".join([f"{i+1}. {n}" for i, n in enumerate(st.session_state['pilihan'])])
+    pesan_wa = urllib.parse.quote(f"Halo Playkamera! 📸\n\nIni list foto pilihan saya ({jml} foto):\n\n{list_text}\n\nTerima kasih! 🙏")
+    
+    if jml > 0:
+        # Show selected files as styled list
+        file_items_html = ""
+        for i, fname in enumerate(st.session_state['pilihan']):
+            file_items_html += f'<div style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:12px;color:#e8e8f0;display:flex;align-items:center;gap:8px;"><span style="color:#8b5cf6;font-weight:700;min-width:20px;">{i+1}.</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{fname}</span></div>'
+        
+        st.sidebar.markdown(f'<div style="max-height:280px;overflow-y:auto;padding-right:4px;">{file_items_html}</div>', unsafe_allow_html=True)
+        
+        st.sidebar.divider()
+        
+        # WhatsApp send button
+        st.sidebar.markdown(f'<a href="https://wa.me/{WA_NUMBER}?text={pesan_wa}" class="sidebar-wa-btn" target="_blank">📲 Kirim {jml} Foto ke WhatsApp</a>', unsafe_allow_html=True)
+    else:
+        st.sidebar.markdown("""
+            <div style="text-align:center;padding:20px;color:#6b6b8a;">
+                <div style="font-size:32px;margin-bottom:8px;">📷</div>
+                <div style="font-size:13px;">Belum ada foto dipilih</div>
+                <div style="font-size:11px;margin-top:4px;color:#555;">Ketuk tombol PILIH pada foto di galeri</div>
+            </div>
+        """, unsafe_allow_html=True)
 
+    # Reset button
+    if jml > 0:
+        if st.sidebar.button("🔄 Reset Semua Pilihan", use_container_width=True):
+            st.session_state['pilihan'] = []
+            st.rerun()
+
+    # --- MAIN CONTENT ---
     if st.session_state.get("logged_in"):
         if st.button("⬅️ Dashboard"):
             st.query_params.clear()
@@ -189,27 +268,31 @@ def page_client(folder_id):
     try:
         results = service.files().list(
             q=f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false",
-            pageSize=100, fields="files(id, name)").execute()
+            pageSize=200, fields="files(id, name)").execute()
         items = results.get('files', [])
 
         if not items:
             st.warning("⚠️ Folder kosong.")
         else:
-            col_a, col_b = st.columns([3, 1])
-            with col_a: 
-                st.write("Silakan pilih foto terbaik Anda.")
-            with col_b: 
-                if st.button("Reset"):
-                    st.session_state['pilihan'] = []
-                    st.rerun()
+            # Photo count info bar
+            total_foto = len(items)
+            st.markdown(f"""
+                <div class="photo-count-bar">
+                    <div class="photo-count-text">🖼️ Total: <strong>{total_foto}</strong> foto</div>
+                    <div class="photo-count-text">✅ Dipilih: <strong>{jml}</strong> / {max_p}</div>
+                </div>
+            """, unsafe_allow_html=True)
 
-            cols = st.columns(2)
+            st.markdown('<div style="font-size:14px;color:#a5a5c0;margin-bottom:12px;">Silakan pilih foto terbaik Anda. Ketuk tombol <strong style=\'color:#8b5cf6\'>PILIH</strong> di bawah foto.</div>', unsafe_allow_html=True)
+
+            # 2-column grid gallery
+            cols = st.columns(2, gap="small")
             for idx, item in enumerate(items):
                 with cols[idx % 2]:
                     st.markdown('<div class="img-container">', unsafe_allow_html=True)
                     img_data = get_processed_image(item['id'])
                     if img_data: 
-                        st.image(img_data, width="stretch")
+                        st.image(img_data, use_container_width=True)
                     st.markdown('</div>', unsafe_allow_html=True)
 
                     st.markdown(f'<div class="filename-bar">{item["name"]}</div>', unsafe_allow_html=True)
@@ -222,15 +305,19 @@ def page_client(folder_id):
                     if st.button(label, key=f"s_{item['id']}"):
                         if is_sel: 
                             st.session_state['pilihan'].remove(item['name'])
-                        else: 
-                            st.session_state['pilihan'].append(item['name'])
+                        else:
+                            if jml >= max_p:
+                                st.toast(f"⚠️ Maksimal {max_p} foto! Hapus salah satu pilihan dulu.", icon="⚠️")
+                            else:
+                                st.session_state['pilihan'].append(item['name'])
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
                     
+            # Sticky bottom bar
             sticky_html = f"""
             <div class="sticky-bottom-bar">
-                <div class="sticky-text">✅ Terpilih: {len(st.session_state['pilihan'])}/100</div>
-                <a href="https://wa.me/628xxx?text={pesan_wa}" class="sticky-btn" target="_blank">🚀 Kirim WA</a>
+                <div class="sticky-text">✅ {jml}/{max_p} foto</div>
+                <a href="https://wa.me/{WA_NUMBER}?text={pesan_wa}" class="sticky-btn" target="_blank">📲 Kirim WA</a>
             </div>
             """
             st.markdown(sticky_html, unsafe_allow_html=True)
@@ -276,15 +363,24 @@ def page_admin():
                 st.markdown(f'<div class="login-error">{st.session_state["login_error"]}</div>', unsafe_allow_html=True)
         return
 
-    st.title("📸 Dashboard Fotografer")
-    st.sidebar.button("🚪 Log Out", on_click=lambda: st.session_state.update({"logged_in": False}))
+    # --- SIDEBAR DASHBOARD ---
+    st.sidebar.markdown("""
+        <div style="text-align:center;margin-bottom:16px;">
+            <div style="font-size:22px;font-weight:700;background:linear-gradient(135deg,#a855f7,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">📸 Creative.pick</div>
+            <div style="font-size:12px;color:#8888aa;margin-top:4px;">Dashboard Admin</div>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    st.sidebar.button("🚪 Log Out", on_click=lambda: st.session_state.update({"logged_in": False}), use_container_width=True)
     
     st.sidebar.divider()
-    st.sidebar.header("📥 Download Project")
-    dl_folder_id = st.sidebar.text_input("ID Folder Project", placeholder="Paste Folder ID GDrive")
-    dl_list_names = st.sidebar.text_area("Paste List Nama File dari Client", help="Pisahkan dengan baris baru")
+    st.sidebar.markdown('<div style="font-size:15px;font-weight:600;color:#c4b5fd;margin-bottom:8px;">📥 Download Foto Klien</div>', unsafe_allow_html=True)
+    st.sidebar.markdown('<div style="font-size:12px;color:#8888aa;margin-bottom:12px;">Salin link ID folder dari project klien, lalu paste list nama file yang dipilih klien untuk diproses menjadi ZIP.</div>', unsafe_allow_html=True)
     
-    if st.sidebar.button("⚡ Generate Download ZIP"):
+    dl_folder_id = st.sidebar.text_input("🔗 Salin Link ID Klien", placeholder="Paste Folder ID dari link project")
+    dl_list_names = st.sidebar.text_area("📋 Paste List Nama File", help="Pisahkan dengan baris baru", placeholder="DSC01001.JPG\nDSC01002.JPG\n...")
+    
+    if st.sidebar.button("⚡ Generate Download ZIP", use_container_width=True):
         if dl_folder_id and dl_list_names:
             service = get_gdrive_service()
             file_names = [n.strip() for n in dl_list_names.split("\n") if n.strip()]
@@ -319,7 +415,12 @@ def page_admin():
                 )
             else: 
                 st.sidebar.error("File tidak ditemukan.")
+        else:
+            st.sidebar.warning("⚠️ Isi ID Folder dan List Nama File.")
 
+    # --- MAIN CONTENT ---
+    st.title("📸 Dashboard Fotografer")
+    
     # --- Welcome Banner + Stats ---
     projects = manage_db()
     st.markdown(f"""
@@ -377,13 +478,19 @@ def page_admin():
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Gallery preview: show thumbnails from GDrive
+                # Gallery preview + photo count
                 try:
                     service = get_gdrive_service()
-                    results = service.files().list(
+                    # Get total count
+                    all_files = service.files().list(
                         q=f"'{fid}' in parents and mimeType contains 'image/' and trashed = false",
-                        pageSize=6, fields="files(id, name)").execute()
-                    thumbs = results.get('files', [])
+                        pageSize=200, fields="files(id, name)").execute()
+                    all_items = all_files.get('files', [])
+                    foto_count = len(all_items)
+                    
+                    st.markdown(f'<div style="color:#a78bfa;font-size:13px;font-weight:500;margin-bottom:8px;">📷 {foto_count} foto dalam project ini</div>', unsafe_allow_html=True)
+                    
+                    thumbs = all_items[:6]
                     if thumbs:
                         gcols = st.columns(min(len(thumbs), 3))
                         for ti, thumb in enumerate(thumbs[:6]):
