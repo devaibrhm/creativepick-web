@@ -21,74 +21,94 @@ ADMIN_PASS = "playkamera123"
 BASE_URL = "https://creativepick.streamlit.app"
 
 def apply_custom_style():
-    st.markdown("""
-        <style>
-        /* Base Theme */
-        .stApp { background: linear-gradient(180deg, #0f0c29 0%, #302b63 50%, #24243e 100%); color: #ffffff; }
-        
-        /* Memberikan ruang kosong di paling bawah agar foto terakhir tidak tertutup Bar */
-        .block-container { padding-bottom: 90px !important; }
-
-        /* MENGHILANGKAN GAP ANTAR ELEMEN */
-        [data-testid="column"] [data-testid="stVerticalBlock"] { gap: 0 !important; }
-        [data-testid="column"] { padding: 5px !important; }
-
-        /* IMAGE CONTAINER (PORTRAIT 2:3) */
-        .img-container { position: relative; width: 100%; margin: 0; }
-        .img-container img {
-            aspect-ratio: 2 / 3 !important; object-fit: cover !important; width: 100% !important;
-            border-radius: 12px 12px 0 0 !important; display: block;
-            border: 1px solid rgba(255,255,255,0.1);
+    # Part 1: Font import + Base theme, layout, image styles
+    st.markdown("""<style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+        @keyframes gradientShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pulseGlow { 0%,100%{box-shadow:0 0 15px rgba(142,45,226,0.3)} 50%{box-shadow:0 0 30px rgba(142,45,226,0.6)} }
+        *,.stApp,.stApp p,.stApp span,.stApp div,.stApp label,.stApp input,.stApp textarea,.stApp button,.stApp h1,.stApp h2,.stApp h3,.stApp h4{font-family:'Poppins',sans-serif!important}
+        .stApp{background:linear-gradient(135deg,#0a0a1a 0%,#1a0a2e 25%,#16213e 50%,#0a0a1a 75%,#1a0533 100%);background-size:400% 400%;animation:gradientShift 15s ease infinite;color:#e8e8f0}
+        .block-container{padding-bottom:100px!important}
+        h1{background:linear-gradient(135deg,#a855f7,#6366f1,#06b6d4)!important;-webkit-background-clip:text!important;-webkit-text-fill-color:transparent!important;font-weight:800!important;letter-spacing:-0.5px!important}
+        h2,h3{color:#c4b5fd!important;font-weight:600!important}
+        [data-testid="column"] [data-testid="stVerticalBlock"]{gap:0!important}
+        [data-testid="column"]{padding:6px!important}
+        .img-container{position:relative;width:100%;margin:0}
+        .img-container img{aspect-ratio:2/3!important;object-fit:cover!important;width:100%!important;border-radius:16px 16px 0 0!important;display:block;border:1px solid rgba(167,139,250,0.2);transition:transform 0.3s ease,filter 0.3s ease}
+        .img-container:hover img{transform:scale(1.02);filter:brightness(1.1)}
+        .filename-bar{background:rgba(15,10,35,0.85);backdrop-filter:blur(10px);color:#c4b5fd;text-align:center;font-size:11px;font-weight:500;padding:8px;width:100%;border-left:1px solid rgba(167,139,250,0.15);border-right:1px solid rgba(167,139,250,0.15);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0.3px}
+        .pilih-btn-wrap{width:100%}
+        .pilih-btn-wrap .stButton button{width:100%!important;border-radius:0 0 16px 16px!important;border:none!important;font-weight:600;padding:12px 0!important;font-size:13px!important;letter-spacing:0.5px;transition:all 0.3s cubic-bezier(0.4,0,0.2,1)!important}
+        .pilih-btn-wrap .stButton button:hover{transform:translateY(-2px)!important;filter:brightness(1.15)!important}
+        .btn-purple button{background:linear-gradient(135deg,#8b5cf6 0%,#6d28d9 50%,#7c3aed 100%)!important;color:#fff!important;box-shadow:0 4px 15px rgba(139,92,246,0.3)!important}
+        .btn-blue button{background:linear-gradient(135deg,#06b6d4 0%,#3b82f6 50%,#8b5cf6 100%)!important;color:#fff!important;box-shadow:0 4px 15px rgba(59,130,246,0.3)!important}
+    </style>""", unsafe_allow_html=True)
+    
+    # Part 2: Sticky bar, sidebar, inputs, tabs, login card styles
+    st.markdown("""<style>
+        .sticky-bottom-bar{position:fixed;bottom:0;left:0;width:100%;background:rgba(10,8,30,0.85);backdrop-filter:blur(20px) saturate(180%);border-top:1px solid rgba(139,92,246,0.4);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;z-index:99999;box-shadow:0 -8px 32px rgba(0,0,0,0.5)}
+        .sticky-text{color:#e8e8f0;font-weight:600;font-size:15px;margin:0}
+        .sticky-btn{background:linear-gradient(135deg,#06b6d4,#8b5cf6);color:#fff!important;text-decoration:none!important;padding:12px 28px;border-radius:50px;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(139,92,246,0.4);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.3px}
+        .sticky-btn:hover{filter:brightness(1.15);transform:scale(1.05) translateY(-2px);box-shadow:0 8px 30px rgba(139,92,246,0.5)}
+        [data-testid="stSidebar"]{background:rgba(10,8,30,0.95)!important;backdrop-filter:blur(20px);border-right:1px solid rgba(139,92,246,0.3)!important}
+        [data-testid="stSidebar"] .stButton button{background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;color:#fff!important;border:none!important;border-radius:12px!important;font-weight:600!important;transition:all 0.3s ease!important}
+        [data-testid="stSidebar"] .stButton button:hover{transform:translateY(-2px)!important;filter:brightness(1.1)!important}
+        .stTextInput input,.stTextArea textarea{background:rgba(30,20,60,0.6)!important;border:1px solid rgba(139,92,246,0.3)!important;border-radius:12px!important;color:#e8e8f0!important;transition:border-color 0.3s ease!important}
+        .stTextInput input:focus,.stTextArea textarea:focus{border-color:#8b5cf6!important;box-shadow:0 0 15px rgba(139,92,246,0.2)!important}
+        .stTabs [data-baseweb="tab-list"]{background:rgba(30,20,60,0.4);border-radius:16px;padding:4px;border:1px solid rgba(139,92,246,0.2)}
+        .stTabs [data-baseweb="tab"]{border-radius:12px!important;font-weight:500!important;color:#a5a5c0!important}
+        .stTabs [aria-selected="true"]{background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;color:#fff!important}
+        .streamlit-expanderHeader{background:rgba(30,20,60,0.5)!important;border-radius:12px!important;border:1px solid rgba(139,92,246,0.2)!important}
+        .login-card{background:rgba(20,15,45,0.7);backdrop-filter:blur(24px) saturate(180%);padding:40px 35px;border-radius:24px;border:1px solid rgba(139,92,246,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 40px rgba(139,92,246,0.1);animation:fadeInUp 0.6s ease-out}
+        .login-title{text-align:center;font-size:28px;font-weight:700;background:linear-gradient(135deg,#a855f7,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+        .login-subtitle{text-align:center;color:#8888aa;font-size:14px;margin-bottom:24px}
+        .login-error{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:12px 16px;color:#fca5a5;font-size:14px;font-weight:500;text-align:center;margin-top:12px;animation:fadeInUp 0.3s ease-out}
+        .stButton button{transition:all 0.3s cubic-bezier(0.4,0,0.2,1)!important}
+        ::-webkit-scrollbar{width:6px}
+        ::-webkit-scrollbar-track{background:rgba(10,8,30,0.5)}
+        ::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.4);border-radius:3px}
+        ::-webkit-scrollbar-thumb:hover{background:rgba(139,92,246,0.6)}
+    </style>""", unsafe_allow_html=True)
+    
+    # Part 3: Dashboard, project cards, gallery, mobile responsive
+    st.markdown("""<style>
+        .stat-card{background:rgba(20,15,45,0.6);backdrop-filter:blur(16px);border:1px solid rgba(139,92,246,0.2);border-radius:16px;padding:20px;text-align:center;transition:all 0.3s ease}
+        .stat-card:hover{transform:translateY(-4px);box-shadow:0 8px 25px rgba(139,92,246,0.2);border-color:rgba(139,92,246,0.4)}
+        .stat-number{font-size:32px;font-weight:800;background:linear-gradient(135deg,#a855f7,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .stat-label{font-size:13px;color:#8888aa;margin-top:4px;font-weight:500}
+        .project-card{background:rgba(20,15,45,0.5);backdrop-filter:blur(12px);border:1px solid rgba(139,92,246,0.2);border-radius:16px;padding:20px;margin-bottom:12px;transition:all 0.3s ease;animation:fadeInUp 0.4s ease-out}
+        .project-card:hover{border-color:rgba(139,92,246,0.4);box-shadow:0 4px 20px rgba(139,92,246,0.15)}
+        .project-name{font-size:16px;font-weight:600;color:#e8e8f0;margin-bottom:4px}
+        .project-id{font-size:11px;color:#6b6b8a;word-break:break-all}
+        .project-link{font-size:12px;color:#8b5cf6;word-break:break-all}
+        .gallery-thumb{border-radius:10px;border:1px solid rgba(139,92,246,0.15);transition:transform 0.3s ease}
+        .gallery-thumb:hover{transform:scale(1.05)}
+        .welcome-banner{background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(6,182,212,0.1));border:1px solid rgba(139,92,246,0.2);border-radius:20px;padding:28px 24px;margin-bottom:24px;animation:fadeInUp 0.5s ease-out}
+        .welcome-text{font-size:14px;color:#a5a5c0;margin-top:6px}
+        .form-card{background:rgba(20,15,45,0.5);backdrop-filter:blur(12px);border:1px solid rgba(139,92,246,0.2);border-radius:16px;padding:24px;margin-top:8px}
+        .section-title{font-size:18px;font-weight:600;color:#c4b5fd;margin-bottom:12px}
+        .empty-state{text-align:center;padding:40px 20px;color:#6b6b8a}
+        .empty-state-icon{font-size:48px;margin-bottom:12px}
+        .empty-state-text{font-size:14px}
+        .del-btn button{background:linear-gradient(135deg,#ef4444,#dc2626)!important;color:#fff!important;border:none!important;border-radius:10px!important;font-size:12px!important;padding:6px 12px!important}
+        .del-btn button:hover{filter:brightness(1.15)!important;transform:scale(1.05)!important}
+        .view-btn button{background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;color:#fff!important;border:none!important;border-radius:10px!important;font-size:12px!important;padding:6px 12px!important}
+        .copy-link{background:rgba(139,92,246,0.1);border:1px dashed rgba(139,92,246,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:#a78bfa;word-break:break-all;margin:8px 0}
+        @media(max-width:768px){
+            .block-container{padding-left:12px!important;padding-right:12px!important;padding-top:20px!important}
+            h1{font-size:22px!important}
+            .stat-card{padding:14px}
+            .stat-number{font-size:24px}
+            .stat-label{font-size:11px}
+            .project-card{padding:14px}
+            .welcome-banner{padding:18px 14px}
+            .sticky-bottom-bar{padding:10px 14px}
+            .sticky-text{font-size:13px}
+            .sticky-btn{padding:8px 16px;font-size:12px}
+            [data-testid="column"]{padding:3px!important}
         }
-
-        /* BAR NAMA FILE */
-        .filename-bar {
-            background-color: #0d0b21; color: white; text-align: center;
-            font-size: 11px; padding: 6px 5px; width: 100%;
-            border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-
-        /* TOMBOL PILIH (ROUNDED BAWAH) */
-        .pilih-btn-wrap { width: 100%; }
-        .pilih-btn-wrap .stButton button {
-            width: 100% !important; border-radius: 0 0 12px 12px !important;
-            border: none !important; font-weight: bold; padding: 10px 0 !important;
-        }
-        .btn-purple button { background: linear-gradient(90deg, #8e2de2 0%, #4a00e0 100%) !important; color: white !important; }
-        .btn-blue button { background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%) !important; color: white !important; }
-
-        /* --- STICKY BOTTOM BAR KHUSUS MOBILE/WEB --- */
-        .sticky-bottom-bar {
-            position: fixed;
-            bottom: 0; left: 0; width: 100%;
-            background: rgba(15, 12, 41, 0.95);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid #8e2de2;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 99999;
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
-        }
-        .sticky-text {
-            color: white; font-weight: bold; font-size: 15px; margin: 0;
-        }
-        .sticky-btn {
-            background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
-            color: white !important; text-decoration: none !important;
-            padding: 10px 20px; border-radius: 25px;
-            font-weight: bold; font-size: 14px;
-            box-shadow: 0 4px 10px rgba(0, 210, 255, 0.3);
-            transition: 0.3s;
-        }
-        .sticky-btn:hover { filter: brightness(1.1); transform: scale(1.05); }
-
-        /* SIDEBAR STYLING */
-        [data-testid="stSidebar"] { background-color: rgba(15, 12, 41, 0.95); border-right: 1px solid #4a00e0; }
-        </style>
-    """, unsafe_allow_html=True)
+    </style>""", unsafe_allow_html=True)
 
 # ==========================================
 # 2. SISTEM GOOGLE DRIVE & PROCESSING
@@ -134,6 +154,10 @@ def manage_db(action="read", name=None, fid=None):
         
     if action == "write":
         data[name] = fid
+        with open(DB_FILE, 'w') as f:
+            json.dump(data, f)
+    elif action == "delete" and name in data:
+        del data[name]
         with open(DB_FILE, 'w') as f:
             json.dump(data, f)
     return data
@@ -220,30 +244,46 @@ def page_admin():
     apply_custom_style()
     if "logged_in" not in st.session_state: 
         st.session_state["logged_in"] = False
+    if "login_error" not in st.session_state:
+        st.session_state["login_error"] = ""
     
     if not st.session_state["logged_in"]:
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.markdown('<div style="background:rgba(255,255,255,0.05); padding:25px; border-radius:15px; border:1px solid #8e2de2">', unsafe_allow_html=True)
-            st.header("🔐 Admin Login")
-            u = st.text_input("Username")
-            p = st.text_input("Password", type="password")
-            if st.button("Masuk"):
-                if u == ADMIN_USER and p == ADMIN_PASS:
+            st.markdown("""
+                <div style="background:rgba(20,15,45,0.7);backdrop-filter:blur(24px) saturate(180%);padding:40px 35px 20px;border-radius:24px;border:1px solid rgba(139,92,246,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 40px rgba(139,92,246,0.1);margin-bottom:20px;">
+                    <div style="text-align:center;font-size:28px;font-weight:700;background:linear-gradient(135deg,#a855f7,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px;">🔐 Creative.pick</div>
+                    <div style="text-align:center;color:#8888aa;font-size:14px;margin-bottom:10px;">Masuk ke Dashboard Admin</div>
+                </div>
+            """, unsafe_allow_html=True)
+            u = st.text_input("Username", placeholder="Masukkan username")
+            p = st.text_input("Password", type="password", placeholder="Masukkan password")
+            
+            if st.button("🚀 Masuk", use_container_width=True):
+                if not u or not p:
+                    st.session_state["login_error"] = "⚠️ Username dan Password tidak boleh kosong!"
+                    st.rerun()
+                elif u == ADMIN_USER and p == ADMIN_PASS:
+                    st.session_state["login_error"] = ""
                     st.session_state["logged_in"] = True
                     st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
+                else:
+                    st.session_state["login_error"] = "❌ Username atau Password salah! Silakan coba lagi."
+                    st.rerun()
+            
+            if st.session_state["login_error"]:
+                st.markdown(f'<div class="login-error">{st.session_state["login_error"]}</div>', unsafe_allow_html=True)
         return
 
-    st.title("👨‍💻 Dashboard Fotografer")
-    st.sidebar.button("Log Out", on_click=lambda: st.session_state.update({"logged_in": False}))
+    st.title("📸 Dashboard Fotografer")
+    st.sidebar.button("🚪 Log Out", on_click=lambda: st.session_state.update({"logged_in": False}))
     
     st.sidebar.divider()
     st.sidebar.header("📥 Download Project")
     dl_folder_id = st.sidebar.text_input("ID Folder Project", placeholder="Paste Folder ID GDrive")
     dl_list_names = st.sidebar.text_area("Paste List Nama File dari Client", help="Pisahkan dengan baris baru")
     
-    if st.sidebar.button("Generate Download ZIP"):
+    if st.sidebar.button("⚡ Generate Download ZIP"):
         if dl_folder_id and dl_list_names:
             service = get_gdrive_service()
             file_names = [n.strip() for n in dl_list_names.split("\n") if n.strip()]
@@ -279,26 +319,101 @@ def page_admin():
             else: 
                 st.sidebar.error("File tidak ditemukan.")
 
-    tab1, tab2 = st.tabs(["➕ Buat Project", "📂 Riwayat"])
+    # --- Welcome Banner + Stats ---
+    projects = manage_db()
+    st.markdown(f"""
+        <div class="welcome-banner">
+            <div style="font-size:20px;font-weight:700;color:#e8e8f0;">👋 Selamat datang, Admin!</div>
+            <div class="welcome-text">Kelola semua project fotografi Anda dari sini.</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    sc1, sc2, sc3 = st.columns(3)
+    with sc1:
+        st.markdown(f'<div class="stat-card"><div class="stat-number">{len(projects)}</div><div class="stat-label">📂 Total Project</div></div>', unsafe_allow_html=True)
+    with sc2:
+        import datetime
+        today = datetime.date.today().strftime("%d %b %Y")
+        st.markdown(f'<div class="stat-card"><div class="stat-number" style="font-size:20px">{today}</div><div class="stat-label">📅 Hari Ini</div></div>', unsafe_allow_html=True)
+    with sc3:
+        st.markdown(f'<div class="stat-card"><div class="stat-number">✨</div><div class="stat-label">🚀 Creative.pick</div></div>', unsafe_allow_html=True)
+
+    st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
+
+    # --- Tabs ---
+    tab1, tab2 = st.tabs(["➕ Buat Project Baru", "📂 Riwayat Project"])
+    
     with tab1:
-        c_name = st.text_input("Nama Client")
-        g_url = st.text_input("Link Folder GDrive")
-        if st.button("Buat Project"):
+        st.markdown('<div class="section-title">🎯 Buat Link Gallery Baru</div>', unsafe_allow_html=True)
+        c_name = st.text_input("Nama Client", placeholder="Contoh: Wisuda Andi")
+        g_url = st.text_input("Link Folder Google Drive", placeholder="Paste link folder GDrive di sini")
+        if st.button("🚀 Buat Project", use_container_width=True):
             fid = re.search(r'folders/([\w-]+)', g_url)
             fid = fid.group(1) if fid else g_url
             if c_name and fid:
                 manage_db("write", c_name, fid)
-                st.success("Link berhasil dibuat!")
-                st.code(f"{BASE_URL}/?folder={fid}")
+                st.success("✅ Project berhasil dibuat!")
+                link = f"{BASE_URL}/?folder={fid}"
+                st.markdown(f'<div class="copy-link">🔗 {link}</div>', unsafe_allow_html=True)
+                st.code(link, language=None)
+            else:
+                st.warning("⚠️ Mohon isi Nama Client dan Link Folder GDrive.")
 
     with tab2:
         projects = manage_db()
-        for name, fid in projects.items():
-            with st.expander(f"📁 {name}"):
-                st.write(f"ID: `{fid}`")
-                if st.button(f"Lihat Project {name}", key=f"v_{fid}"):
-                    st.query_params["folder"] = fid
-                    st.rerun()
+        if not projects:
+            st.markdown("""
+                <div class="empty-state">
+                    <div class="empty-state-icon">📭</div>
+                    <div class="empty-state-text">Belum ada project. Buat project pertama Anda!</div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            for name, fid in list(projects.items()):
+                st.markdown(f"""
+                    <div class="project-card">
+                        <div class="project-name">📁 {name}</div>
+                        <div class="project-link">🔗 {BASE_URL}/?folder={fid}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                # Gallery preview: show thumbnails from GDrive
+                try:
+                    service = get_gdrive_service()
+                    results = service.files().list(
+                        q=f"'{fid}' in parents and mimeType contains 'image/' and trashed = false",
+                        pageSize=6, fields="files(id, name)").execute()
+                    thumbs = results.get('files', [])
+                    if thumbs:
+                        gcols = st.columns(min(len(thumbs), 3))
+                        for ti, thumb in enumerate(thumbs[:6]):
+                            with gcols[ti % 3]:
+                                img = get_processed_image(thumb['id'])
+                                if img:
+                                    st.image(img, caption=thumb['name'], use_container_width=True)
+                    else:
+                        st.caption("📷 Tidak ada preview foto tersedia.")
+                except Exception:
+                    st.caption("⚠️ Gagal memuat preview foto.")
+
+                # Action buttons
+                bc1, bc2, bc3 = st.columns([2, 1, 1])
+                with bc1:
+                    st.code(f"{BASE_URL}/?folder={fid}", language=None)
+                with bc2:
+                    st.markdown('<div class="view-btn">', unsafe_allow_html=True)
+                    if st.button(f"👁️ Lihat", key=f"v_{fid}"):
+                        st.query_params["folder"] = fid
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                with bc3:
+                    st.markdown('<div class="del-btn">', unsafe_allow_html=True)
+                    if st.button(f"🗑️ Hapus", key=f"d_{fid}"):
+                        manage_db("delete", name)
+                        st.rerun()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                st.markdown("<hr style='border:none;border-top:1px solid rgba(139,92,246,0.15);margin:16px 0'>", unsafe_allow_html=True)
 
 # ==========================================
 # 5. RUNNER
