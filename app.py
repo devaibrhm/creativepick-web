@@ -240,7 +240,7 @@ def page_client(folder_id):
         st.sidebar.divider()
         
         # WhatsApp send button
-        st.sidebar.markdown(f'<a href="https://wa.me/{WA_NUMBER}?text={pesan_wa}" class="sidebar-wa-btn" target="_blank">📲 Kirim {jml} Foto ke WhatsApp</a>', unsafe_allow_html=True)
+        st.sidebar.markdown(f'<a href="https://wa.me/{+6283121406619}?text={pesan_wa}" class="sidebar-wa-btn" target="_blank">📲 Kirim {jml} Foto ke WhatsApp</a>', unsafe_allow_html=True)
     else:
         st.sidebar.markdown("""
             <div style="text-align:center;padding:20px;color:#6b6b8a;">
