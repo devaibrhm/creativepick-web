@@ -107,18 +107,29 @@ def apply_custom_style():
         .del-btn button:hover{filter:brightness(1.15)!important;transform:scale(1.05)!important}
         .view-btn button{background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;color:#fff!important;border:none!important;border-radius:10px!important;font-size:12px!important;padding:6px 12px!important}
         .copy-link{background:rgba(139,92,246,0.1);border:1px dashed rgba(139,92,246,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:#a78bfa;word-break:break-all;margin:8px 0}
+        .mobile-wa-float{display:none}
+        .mobile-preview{display:none}
         @media(max-width:768px){
-            .block-container{padding-left:12px!important;padding-right:12px!important;padding-top:20px!important}
-            h1{font-size:22px!important}
-            .stat-card{padding:14px}
-            .stat-number{font-size:24px}
-            .stat-label{font-size:11px}
-            .project-card{padding:14px}
-            .welcome-banner{padding:18px 14px}
-            .sticky-bottom-bar{padding:10px 14px}
-            .sticky-text{font-size:13px}
-            .sticky-btn{padding:8px 16px;font-size:12px}
-            [data-testid="column"]{padding:3px!important}
+            .block-container{padding-left:10px!important;padding-right:10px!important;padding-top:16px!important;padding-bottom:140px!important}
+            h1{font-size:20px!important}
+            .stat-card{padding:12px}
+            .stat-number{font-size:20px}
+            .stat-label{font-size:10px}
+            .project-card{padding:12px}
+            .welcome-banner{padding:14px 12px}
+            .sticky-bottom-bar{padding:8px 12px;flex-direction:row;gap:8px}
+            .sticky-text{font-size:12px}
+            .sticky-btn{padding:10px 14px;font-size:13px;border-radius:12px;flex-shrink:0}
+            [data-testid="column"]{padding:2px!important}
+            .filename-bar{font-size:10px;padding:6px}
+            .pilih-btn-wrap .stButton button{padding:10px 0!important;font-size:12px!important}
+            .photo-count-bar{padding:10px 12px;flex-direction:column;gap:4px;text-align:center}
+            .photo-count-text{font-size:12px}
+            .img-container img{border-radius:10px 10px 0 0!important}
+            .mobile-wa-float{display:block!important;position:fixed;bottom:70px;right:12px;z-index:99998}
+            .mobile-wa-float a{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-size:26px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,0.5);transition:all 0.3s ease}
+            .mobile-wa-float a:hover{transform:scale(1.1)}
+            .mobile-preview{display:block!important}
         }
     </style>""", unsafe_allow_html=True)
 
@@ -181,7 +192,7 @@ def manage_db(action="read", name=None, fid=None):
 # ==========================================
 # 3. HALAMAN CLIENT (DENGAN STICKY BAR)
 # ==========================================
-WA_NUMBER = "628xxx"  # Ganti dengan nomor WhatsApp fotografer
+WA_NUMBER = "6283121406619"
 
 def page_client(folder_id):
     apply_custom_style()
@@ -240,7 +251,7 @@ def page_client(folder_id):
         st.sidebar.divider()
         
         # WhatsApp send button
-        st.sidebar.markdown(f'<a href="https://wa.me/{+6283121406619}?text={pesan_wa}" class="sidebar-wa-btn" target="_blank">📲 Kirim {jml} Foto ke WhatsApp</a>', unsafe_allow_html=True)
+        st.sidebar.markdown(f'<a href="https://wa.me/{WA_NUMBER}?text={pesan_wa}" class="sidebar-wa-btn" target="_blank">📲 Kirim {jml} Foto ke WhatsApp</a>', unsafe_allow_html=True)
     else:
         st.sidebar.markdown("""
             <div style="text-align:center;padding:20px;color:#6b6b8a;">
@@ -317,10 +328,29 @@ def page_client(folder_id):
             sticky_html = f"""
             <div class="sticky-bottom-bar">
                 <div class="sticky-text">✅ {jml}/{max_p} foto</div>
-                <a href="https://wa.me/{WA_NUMBER}?text={pesan_wa}" class="sticky-btn" target="_blank">📲 Kirim WA</a>
+                <a href="https://wa.me/{6283121406619}?text={pesan_wa}" class="sticky-btn" target="_blank">📲 Kirim WA</a>
             </div>
             """
             st.markdown(sticky_html, unsafe_allow_html=True)
+
+            # Floating WhatsApp button (mobile only)
+            if jml > 0:
+                st.markdown(f"""
+                    <div class="mobile-wa-float">
+                        <a href="https://wa.me/{6283121406619}?text={pesan_wa}" target="_blank">📲</a>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            # Mobile inline preview (visible only on mobile via CSS)
+            st.markdown(f"""
+                <div class="mobile-preview" style="margin-top:24px;">
+                    <div style="background:rgba(20,15,45,0.7);backdrop-filter:blur(12px);border:1px solid rgba(139,92,246,0.25);border-radius:16px;padding:16px;">
+                        <div style="font-size:15px;font-weight:600;color:#c4b5fd;margin-bottom:10px;">📋 Foto Terpilih ({jml}/{max_p})</div>
+                        {''.join([f'<div style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:8px 10px;margin-bottom:4px;font-size:11px;color:#e8e8f0;">{i+1}. {n}</div>' for i, n in enumerate(st.session_state['pilihan'])]) if jml > 0 else '<div style="text-align:center;color:#6b6b8a;font-size:13px;padding:12px;">Belum ada foto dipilih</div>'}
+                        {'<a href="https://wa.me/' + 6283121406619 + '?text=' + pesan_wa + '" style="display:block;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;text-decoration:none;padding:14px;border-radius:12px;font-weight:600;font-size:15px;text-align:center;margin-top:12px;box-shadow:0 4px 15px rgba(37,211,102,0.3);" target="_blank">📲 Kirim ' + str(jml) + ' Foto ke WhatsApp</a>' if jml > 0 else ''}
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"Error: {e}")
