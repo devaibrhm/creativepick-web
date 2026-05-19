@@ -459,25 +459,25 @@ def page_admin():
             zip_buffer = io.BytesIO()
             files_found = 0
             
-            with st.sidebar.status(f"Memproses {len(file_names)} file...", expanded=True) as status:
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-                    for name in file_names:
-                        q = f"name = '{name}' and '{dl_folder_id}' in parents and trashed = false"
-                        res = service.files().list(q=q, fields="files(id, name)").execute().get('files', [])
-                        if res:
-                            file_id = res[0]['id']
-                            request = service.files().get_media(fileId=file_id)
-                            fh = io.BytesIO()
-                            downloader = MediaIoBaseDownload(fh, request)
-                            done = False
-                            while not done: 
-                                _, done = downloader.next_chunk()
-                            zip_file.writestr(res[0]['name'], fh.getvalue())
-                            files_found += 1
-                            st.write(f"✅ Diambil: {res[0]['name']}")
-                        else:
-                            st.write(f"❌ Gagal: {name}")
-                status.update(label=f"Selesai! {files_found} file dikemas.", state="complete")
+            progress_placeholder = st.sidebar.empty()
+            progress_placeholder.info(f"⏳ Memproses {len(file_names)} file...")
+            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+                for name in file_names:
+                    q = f"name = '{name}' and '{dl_folder_id}' in parents and trashed = false"
+                    res = service.files().list(q=q, fields="files(id, name)").execute().get('files', [])
+                    if res:
+                        file_id = res[0]['id']
+                        request = service.files().get_media(fileId=file_id)
+                        fh = io.BytesIO()
+                        downloader = MediaIoBaseDownload(fh, request)
+                        done = False
+                        while not done: 
+                            _, done = downloader.next_chunk()
+                        zip_file.writestr(res[0]['name'], fh.getvalue())
+                        files_found += 1
+                    else:
+                        pass
+            progress_placeholder.success(f"✅ Selesai! {files_found} file dikemas.")
 
             if files_found > 0:
                 zip_buffer.seek(0)
