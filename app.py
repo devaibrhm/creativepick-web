@@ -73,7 +73,10 @@ def apply_custom_style():
         .stTabs [data-baseweb="tab"]{border-radius:12px!important;font-weight:500!important;color:#a5a5c0!important;flex:1!important;justify-content:center!important}
         .stTabs [aria-selected="true"]{background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;color:#fff!important}
         .streamlit-expanderHeader{background:rgba(30,20,60,0.5)!important;border-radius:12px!important;border:1px solid rgba(139,92,246,0.2)!important}
-        [data-testid="stSidebar"] [data-testid="stStatusWidget"] [data-testid="stExpanderToggleIcon"]{display:none!important}
+        [data-testid="stExpanderToggleIcon"]{display:none!important}
+        [data-testid="stSidebar"] [data-testid="stStatusWidget"] summary span[data-testid="stExpanderToggleIcon"]{display:none!important}
+        [data-testid="stSidebar"] details summary span.material-symbols-outlined{display:none!important;font-size:0!important}
+        [data-testid="stSidebar"] details[data-testid="stExpander"] summary span:first-child{font-size:0!important;width:0!important;overflow:hidden!important}
         [data-testid="stSidebar"] .stAlert p{font-size:12px!important}
         .login-card{background:rgba(20,15,45,0.7);backdrop-filter:blur(24px) saturate(180%);padding:40px 35px;border-radius:24px;border:1px solid rgba(139,92,246,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 40px rgba(139,92,246,0.1);animation:fadeInUp 0.6s ease-out}
         .login-title{text-align:center;font-size:28px;font-weight:700;background:linear-gradient(135deg,#a855f7,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
