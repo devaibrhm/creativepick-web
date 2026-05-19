@@ -51,12 +51,8 @@ def apply_custom_style():
         .btn-blue button{background:linear-gradient(135deg,#06b6d4 0%,#3b82f6 50%,#8b5cf6 100%)!important;color:#fff!important;box-shadow:0 4px 15px rgba(59,130,246,0.3)!important}
     </style>""", unsafe_allow_html=True)
     
-    # Part 2: Sticky bar, sidebar, inputs, tabs, login card styles
+    # Part 2: Sidebar, inputs, tabs, login card styles
     st.markdown("""<style>
-        .sticky-bottom-bar{position:fixed;bottom:40px;left:0;width:100%;background:rgba(10,8,30,0.92);backdrop-filter:blur(20px) saturate(180%);border-top:1px solid rgba(139,92,246,0.4);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;z-index:99999;box-shadow:0 -8px 32px rgba(0,0,0,0.5)}
-        .sticky-text{color:#e8e8f0;font-weight:600;font-size:15px;margin:0}
-        .sticky-btn{background:linear-gradient(135deg,#06b6d4,#8b5cf6);color:#fff!important;text-decoration:none!important;padding:12px 28px;border-radius:50px;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(139,92,246,0.4);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.3px}
-        .sticky-btn:hover{filter:brightness(1.15);transform:scale(1.05) translateY(-2px);box-shadow:0 8px 30px rgba(139,92,246,0.5)}
         [data-testid="stSidebar"]{background:rgba(10,8,30,0.95)!important;backdrop-filter:blur(20px);border-right:1px solid rgba(139,92,246,0.3)!important}
         [data-testid="collapsedControl"]{display:none!important}
         [data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"]{display:none!important}
@@ -73,10 +69,12 @@ def apply_custom_style():
         [data-testid="stSidebar"] .stButton button:hover{transform:translateY(-2px)!important;filter:brightness(1.1)!important}
         .stTextInput input,.stTextArea textarea{background:rgba(30,20,60,0.6)!important;border:1px solid rgba(139,92,246,0.3)!important;border-radius:12px!important;color:#e8e8f0!important;transition:border-color 0.3s ease!important}
         .stTextInput input:focus,.stTextArea textarea:focus{border-color:#8b5cf6!important;box-shadow:0 0 15px rgba(139,92,246,0.2)!important}
-        .stTabs [data-baseweb="tab-list"]{background:rgba(30,20,60,0.4);border-radius:16px;padding:4px;border:1px solid rgba(139,92,246,0.2)}
-        .stTabs [data-baseweb="tab"]{border-radius:12px!important;font-weight:500!important;color:#a5a5c0!important}
+        .stTabs [data-baseweb="tab-list"]{background:rgba(30,20,60,0.4);border-radius:16px;padding:4px;border:1px solid rgba(139,92,246,0.2);gap:0!important}
+        .stTabs [data-baseweb="tab"]{border-radius:12px!important;font-weight:500!important;color:#a5a5c0!important;flex:1!important;justify-content:center!important}
         .stTabs [aria-selected="true"]{background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;color:#fff!important}
         .streamlit-expanderHeader{background:rgba(30,20,60,0.5)!important;border-radius:12px!important;border:1px solid rgba(139,92,246,0.2)!important}
+        [data-testid="stSidebar"] [data-testid="stStatusWidget"] [data-testid="stExpanderToggleIcon"]{display:none!important}
+        [data-testid="stSidebar"] .stAlert p{font-size:12px!important}
         .login-card{background:rgba(20,15,45,0.7);backdrop-filter:blur(24px) saturate(180%);padding:40px 35px;border-radius:24px;border:1px solid rgba(139,92,246,0.25);box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 40px rgba(139,92,246,0.1);animation:fadeInUp 0.6s ease-out}
         .login-title{text-align:center;font-size:28px;font-weight:700;background:linear-gradient(135deg,#a855f7,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
         .login-subtitle{text-align:center;color:#8888aa;font-size:14px;margin-bottom:24px}
@@ -112,27 +110,25 @@ def apply_custom_style():
         .del-btn button:hover{filter:brightness(1.15)!important;transform:scale(1.05)!important}
         .view-btn button{background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;color:#fff!important;border:none!important;border-radius:10px!important;font-size:12px!important;padding:6px 12px!important}
         .copy-link{background:rgba(139,92,246,0.1);border:1px dashed rgba(139,92,246,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:#a78bfa;word-break:break-all;margin:8px 0}
-        .mobile-wa-float{position:fixed;bottom:110px;right:16px;z-index:99998}
+        .mobile-wa-float{display:none}
         .mobile-wa-float a{display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-size:28px;text-decoration:none;box-shadow:0 6px 24px rgba(37,211,102,0.5);transition:all 0.3s ease}
         .mobile-wa-float a:hover{transform:scale(1.1)}
         .mobile-wa-badge{position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
         @media(max-width:768px){
-            .block-container{padding-left:10px!important;padding-right:10px!important;padding-top:16px!important;padding-bottom:160px!important}
+            .block-container{padding-left:10px!important;padding-right:10px!important;padding-top:16px!important;padding-bottom:80px!important}
             h1{font-size:20px!important}
             .stat-card{padding:12px}
             .stat-number{font-size:20px}
             .stat-label{font-size:10px}
             .project-card{padding:12px}
             .welcome-banner{padding:14px 12px}
-            .sticky-bottom-bar{bottom:40px;padding:8px 12px;flex-direction:row;gap:8px}
-            .sticky-text{font-size:12px}
-            .sticky-btn{padding:10px 14px;font-size:13px;border-radius:12px;flex-shrink:0}
             [data-testid="column"]{padding:2px!important}
             .filename-bar{font-size:10px;padding:6px}
             .pilih-btn-wrap .stButton button{padding:10px 0!important;font-size:12px!important}
             .photo-count-bar{padding:10px 12px;flex-direction:column;gap:4px;text-align:center}
             .photo-count-text{font-size:12px}
             .img-container img{border-radius:10px 10px 0 0!important}
+            .mobile-wa-float{display:block!important;position:fixed;bottom:80px;right:14px;z-index:99998}
         }
     </style>""", unsafe_allow_html=True)
 
@@ -357,14 +353,12 @@ def page_client(folder_id):
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
                     
-            # Sticky bottom bar
-            sticky_html = f"""
-            <div class="sticky-bottom-bar">
-                <div class="sticky-text">✅ {jml}/{max_p} foto</div>
-                <a href="https://wa.me/{WA_NUMBER}?text={pesan_wa}" class="sticky-btn" target="_blank">📲 Kirim WA</a>
-            </div>
-            """
-            st.markdown(sticky_html, unsafe_allow_html=True)
+            # Photo count bar (bottom of gallery, no WA button)
+            st.markdown(f"""
+                <div class="photo-count-bar" style="position:sticky;bottom:0;z-index:100;margin-top:16px;">
+                    <div class="photo-count-text">✅ Dipilih: <strong>{jml}</strong> / {max_p} foto</div>
+                </div>
+            """, unsafe_allow_html=True)
 
             # Floating WhatsApp button (always visible, with badge count)
             if jml > 0:
@@ -403,7 +397,7 @@ def page_admin():
             u = st.text_input("Username", placeholder="Masukkan username")
             p = st.text_input("Password", type="password", placeholder="Masukkan password")
             
-            if st.button("🚀 Masuk", use_container_width=True):
+            if st.button("🚀 Login", use_container_width=True):
                 if not u or not p:
                     st.session_state["login_error"] = "⚠️ Username dan Password tidak boleh kosong!"
                     st.rerun()
@@ -521,7 +515,7 @@ def page_admin():
     
     with tab1:
         st.markdown('<div class="section-title">🎯 Buat Link Gallery Baru</div>', unsafe_allow_html=True)
-        c_name = st.text_input("Nama Client", placeholder="Contoh: Wisuda Andi")
+        c_name = st.text_input("Nama Client", placeholder="Contoh: Wisuda Deva")
         g_url = st.text_input("Link Folder Google Drive", placeholder="Paste link folder GDrive di sini")
         if st.button("🚀 Buat Project", use_container_width=True):  
             fid = re.search(r'folders/([\w-]+)', g_url)
