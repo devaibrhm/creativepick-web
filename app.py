@@ -6,11 +6,16 @@ import urllib.parse
 import io
 import zipfile
 import datetime
+import gc
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from PIL import Image
+
+# --- MEMORY CONFIG ---
+MAX_IMG_WIDTH = 600
+IMG_QUALITY = 70
 
 # ==========================================
 # 1. KONFIGURASI & STYLE (DARK MODE, PORTRAIT & STICKY BAR)
@@ -48,7 +53,7 @@ def apply_custom_style():
     
     # Part 2: Sticky bar, sidebar, inputs, tabs, login card styles
     st.markdown("""<style>
-        .sticky-bottom-bar{position:fixed;bottom:0;left:0;width:100%;background:rgba(10,8,30,0.85);backdrop-filter:blur(20px) saturate(180%);border-top:1px solid rgba(139,92,246,0.4);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;z-index:99999;box-shadow:0 -8px 32px rgba(0,0,0,0.5)}
+        .sticky-bottom-bar{position:fixed;bottom:40px;left:0;width:100%;background:rgba(10,8,30,0.92);backdrop-filter:blur(20px) saturate(180%);border-top:1px solid rgba(139,92,246,0.4);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;z-index:99999;box-shadow:0 -8px 32px rgba(0,0,0,0.5)}
         .sticky-text{color:#e8e8f0;font-weight:600;font-size:15px;margin:0}
         .sticky-btn{background:linear-gradient(135deg,#06b6d4,#8b5cf6);color:#fff!important;text-decoration:none!important;padding:12px 28px;border-radius:50px;font-weight:600;font-size:14px;box-shadow:0 4px 20px rgba(139,92,246,0.4);transition:all 0.3s cubic-bezier(0.4,0,0.2,1);letter-spacing:0.3px}
         .sticky-btn:hover{filter:brightness(1.15);transform:scale(1.05) translateY(-2px);box-shadow:0 8px 30px rgba(139,92,246,0.5)}
@@ -107,17 +112,19 @@ def apply_custom_style():
         .del-btn button:hover{filter:brightness(1.15)!important;transform:scale(1.05)!important}
         .view-btn button{background:linear-gradient(135deg,#8b5cf6,#6d28d9)!important;color:#fff!important;border:none!important;border-radius:10px!important;font-size:12px!important;padding:6px 12px!important}
         .copy-link{background:rgba(139,92,246,0.1);border:1px dashed rgba(139,92,246,0.3);border-radius:10px;padding:8px 12px;font-size:12px;color:#a78bfa;word-break:break-all;margin:8px 0}
-        .mobile-wa-float{display:none}
-        .mobile-preview{display:none}
+        .mobile-wa-float{position:fixed;bottom:110px;right:16px;z-index:99998}
+        .mobile-wa-float a{display:flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-size:28px;text-decoration:none;box-shadow:0 6px 24px rgba(37,211,102,0.5);transition:all 0.3s ease}
+        .mobile-wa-float a:hover{transform:scale(1.1)}
+        .mobile-wa-badge{position:absolute;top:-6px;right:-6px;background:#ef4444;color:#fff;font-size:11px;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3)}
         @media(max-width:768px){
-            .block-container{padding-left:10px!important;padding-right:10px!important;padding-top:16px!important;padding-bottom:140px!important}
+            .block-container{padding-left:10px!important;padding-right:10px!important;padding-top:16px!important;padding-bottom:160px!important}
             h1{font-size:20px!important}
             .stat-card{padding:12px}
             .stat-number{font-size:20px}
             .stat-label{font-size:10px}
             .project-card{padding:12px}
             .welcome-banner{padding:14px 12px}
-            .sticky-bottom-bar{padding:8px 12px;flex-direction:row;gap:8px}
+            .sticky-bottom-bar{bottom:40px;padding:8px 12px;flex-direction:row;gap:8px}
             .sticky-text{font-size:12px}
             .sticky-btn{padding:10px 14px;font-size:13px;border-radius:12px;flex-shrink:0}
             [data-testid="column"]{padding:2px!important}
@@ -126,10 +133,6 @@ def apply_custom_style():
             .photo-count-bar{padding:10px 12px;flex-direction:column;gap:4px;text-align:center}
             .photo-count-text{font-size:12px}
             .img-container img{border-radius:10px 10px 0 0!important}
-            .mobile-wa-float{display:block!important;position:fixed;bottom:70px;right:12px;z-index:99998}
-            .mobile-wa-float a{display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;font-size:26px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,0.5);transition:all 0.3s ease}
-            .mobile-wa-float a:hover{transform:scale(1.1)}
-            .mobile-preview{display:block!important}
         }
     </style>""", unsafe_allow_html=True)
 
@@ -157,8 +160,9 @@ def get_gdrive_service():
             
     return build('drive', 'v3', credentials=creds)
 
-@st.cache_data(show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=False, ttl=600, max_entries=50)
 def get_processed_image(file_id):
+    """Download & compress image to save memory on free tier hosting."""
     try:
         service = get_gdrive_service()
         request = service.files().get_media(fileId=file_id)
@@ -168,9 +172,38 @@ def get_processed_image(file_id):
         while not done:
             _, done = downloader.next_chunk()
         fh.seek(0)
-        return Image.open(fh)
-    except Exception as e:
+        img = Image.open(fh)
+        # Resize to save memory
+        if img.width > MAX_IMG_WIDTH:
+            ratio = MAX_IMG_WIDTH / img.width
+            new_h = int(img.height * ratio)
+            img = img.resize((MAX_IMG_WIDTH, new_h), Image.LANCZOS)
+        # Convert to RGB and compress as JPEG bytes
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        buf = io.BytesIO()
+        img.save(buf, format='JPEG', quality=IMG_QUALITY, optimize=True)
+        buf.seek(0)
+        compressed = Image.open(buf)
+        compressed.load()  # Force load into memory
+        buf.close()
+        fh.close()
+        gc.collect()
+        return compressed
+    except Exception:
         return None
+
+@st.cache_data(show_spinner=False, ttl=600)
+def get_folder_file_count(folder_id):
+    """Get file count without downloading images (lightweight)."""
+    try:
+        service = get_gdrive_service()
+        results = service.files().list(
+            q=f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false",
+            pageSize=200, fields="files(id)").execute()
+        return len(results.get('files', []))
+    except Exception:
+        return 0
 
 def manage_db(action="read", name=None, fid=None):
     if not os.path.exists(DB_FILE):
@@ -279,7 +312,7 @@ def page_client(folder_id):
     try:
         results = service.files().list(
             q=f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false",
-            pageSize=200, fields="files(id, name)").execute()
+            pageSize=100, fields="files(id, name)").execute()
         items = results.get('files', [])
 
         if not items:
@@ -303,7 +336,7 @@ def page_client(folder_id):
                     st.markdown('<div class="img-container">', unsafe_allow_html=True)
                     img_data = get_processed_image(item['id'])
                     if img_data: 
-                        st.image(img_data, use_container_width=True)
+                        st.image(img_data, width="stretch")
                     st.markdown('</div>', unsafe_allow_html=True)
 
                     st.markdown(f'<div class="filename-bar">{item["name"]}</div>', unsafe_allow_html=True)
@@ -328,29 +361,22 @@ def page_client(folder_id):
             sticky_html = f"""
             <div class="sticky-bottom-bar">
                 <div class="sticky-text">✅ {jml}/{max_p} foto</div>
-                <a href="https://wa.me/{6283121406619}?text={pesan_wa}" class="sticky-btn" target="_blank">📲 Kirim WA</a>
+                <a href="https://wa.me/{WA_NUMBER}?text={pesan_wa}" class="sticky-btn" target="_blank">📲 Kirim WA</a>
             </div>
             """
             st.markdown(sticky_html, unsafe_allow_html=True)
 
-            # Floating WhatsApp button (mobile only)
+            # Floating WhatsApp button (always visible, with badge count)
             if jml > 0:
+                wa_url = f"https://wa.me/{WA_NUMBER}?text={pesan_wa}"
                 st.markdown(f"""
                     <div class="mobile-wa-float">
-                        <a href="https://wa.me/{6283121406619}?text={pesan_wa}" target="_blank">📲</a>
+                        <a href="{wa_url}" target="_blank">
+                            📲
+                            <span class="mobile-wa-badge">{jml}</span>
+                        </a>
                     </div>
                 """, unsafe_allow_html=True)
-
-            # Mobile inline preview (visible only on mobile via CSS)
-            st.markdown(f"""
-                <div class="mobile-preview" style="margin-top:24px;">
-                    <div style="background:rgba(20,15,45,0.7);backdrop-filter:blur(12px);border:1px solid rgba(139,92,246,0.25);border-radius:16px;padding:16px;">
-                        <div style="font-size:15px;font-weight:600;color:#c4b5fd;margin-bottom:10px;">📋 Foto Terpilih ({jml}/{max_p})</div>
-                        {''.join([f'<div style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:8px 10px;margin-bottom:4px;font-size:11px;color:#e8e8f0;">{i+1}. {n}</div>' for i, n in enumerate(st.session_state['pilihan'])]) if jml > 0 else '<div style="text-align:center;color:#6b6b8a;font-size:13px;padding:12px;">Belum ada foto dipilih</div>'}
-                        {'<a href="https://wa.me/' + 6283121406619 + '?text=' + pesan_wa + '" style="display:block;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;text-decoration:none;padding:14px;border-radius:12px;font-weight:600;font-size:15px;text-align:center;margin-top:12px;box-shadow:0 4px 15px rgba(37,211,102,0.3);" target="_blank">📲 Kirim ' + str(jml) + ' Foto ke WhatsApp</a>' if jml > 0 else ''}
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
 
     except Exception as e:
         st.error(f"Error: {e}")
@@ -407,17 +433,36 @@ def page_admin():
     st.sidebar.markdown('<div style="font-size:15px;font-weight:600;color:#c4b5fd;margin-bottom:8px;">📥 Download Foto Klien</div>', unsafe_allow_html=True)
     st.sidebar.markdown('<div style="font-size:12px;color:#8888aa;margin-bottom:12px;">Salin link ID folder dari project klien, lalu paste list nama file yang dipilih klien untuk diproses menjadi ZIP.</div>', unsafe_allow_html=True)
     
-    dl_folder_id = st.sidebar.text_input("🔗 Salin Link ID Klien", placeholder="Paste Folder ID dari link project")
+    dl_folder_raw = st.sidebar.text_input("🔗 Salin Link/ID Folder Klien", placeholder="Paste link project atau Folder ID")
     dl_list_names = st.sidebar.text_area("📋 Paste List Nama File", help="Pisahkan dengan baris baru", placeholder="DSC01001.JPG\nDSC01002.JPG\n...")
     
     if st.sidebar.button("⚡ Generate Download ZIP", use_container_width=True):
-        if dl_folder_id and dl_list_names:
+        if dl_folder_raw and dl_list_names:
+            # Extract folder ID from various input formats
+            dl_folder_id = dl_folder_raw.strip()
+            # Handle full URL: https://.../?folder=ID
+            folder_match = re.search(r'folder=([\w-]+)', dl_folder_id)
+            if folder_match:
+                dl_folder_id = folder_match.group(1)
+            # Handle Google Drive URL: .../folders/ID
+            folder_match2 = re.search(r'folders/([\w-]+)', dl_folder_id)
+            if folder_match2:
+                dl_folder_id = folder_match2.group(1)
+            
             service = get_gdrive_service()
             file_names = [n.strip() for n in dl_list_names.split("\n") if n.strip()]
+            # Clean file names: remove numbering like "1. ", "2. " etc
+            clean_names = []
+            for fn in file_names:
+                cleaned = re.sub(r'^\d+\.\s*', '', fn).strip()
+                if cleaned:
+                    clean_names.append(cleaned)
+            file_names = clean_names if clean_names else file_names
+            
             zip_buffer = io.BytesIO()
             files_found = 0
             
-            with st.sidebar.status("Sedang memproses file...", expanded=True) as status:
+            with st.sidebar.status(f"Memproses {len(file_names)} file...", expanded=True) as status:
                 with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                     for name in file_names:
                         q = f"name = '{name}' and '{dl_folder_id}' in parents and trashed = false"
@@ -478,7 +523,7 @@ def page_admin():
         st.markdown('<div class="section-title">🎯 Buat Link Gallery Baru</div>', unsafe_allow_html=True)
         c_name = st.text_input("Nama Client", placeholder="Contoh: Wisuda Andi")
         g_url = st.text_input("Link Folder Google Drive", placeholder="Paste link folder GDrive di sini")
-        if st.button("🚀 Buat Project", use_container_width=True):
+        if st.button("🚀 Buat Project", use_container_width=True):  
             fid = re.search(r'folders/([\w-]+)', g_url)
             fid = fid.group(1) if fid else g_url
             if c_name and fid:
@@ -505,47 +550,21 @@ def page_admin():
                     <div class="project-card">
                         <div class="project-name">📁 {name}</div>
                         <div class="project-link">🔗 {BASE_URL}/?folder={fid}</div>
+                        <div style="margin-top:8px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.2);border-radius:8px;padding:6px 10px;font-size:11px;color:#8b5cf6;font-family:monospace;word-break:break-all;">📋 Folder ID: {fid}</div>
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Gallery preview + photo count
-                try:
-                    service = get_gdrive_service()
-                    # Get total count
-                    all_files = service.files().list(
-                        q=f"'{fid}' in parents and mimeType contains 'image/' and trashed = false",
-                        pageSize=200, fields="files(id, name)").execute()
-                    all_items = all_files.get('files', [])
-                    foto_count = len(all_items)
-                    
-                    st.markdown(f'<div style="color:#a78bfa;font-size:13px;font-weight:500;margin-bottom:8px;">📷 {foto_count} foto dalam project ini</div>', unsafe_allow_html=True)
-                    
-                    thumbs = all_items[:6]
-                    if thumbs:
-                        gcols = st.columns(min(len(thumbs), 3))
-                        for ti, thumb in enumerate(thumbs[:6]):
-                            with gcols[ti % 3]:
-                                img = get_processed_image(thumb['id'])
-                                if img:
-                                    st.image(img, caption=thumb['name'], use_container_width=True)
-                    else:
-                        st.caption("📷 Tidak ada preview foto tersedia.")
-                except Exception:
-                    st.caption("⚠️ Gagal memuat preview foto.")
-
-                # Action buttons
-                bc1, bc2, bc3 = st.columns([2, 1, 1])
+                # Action buttons only (no API calls)
+                bc1, bc2 = st.columns(2)
                 with bc1:
-                    st.code(f"{BASE_URL}/?folder={fid}", language=None)
-                with bc2:
                     st.markdown('<div class="view-btn">', unsafe_allow_html=True)
-                    if st.button(f"👁️ Lihat", key=f"v_{fid}"):
+                    if st.button(f"👁️ Lihat Gallery", key=f"v_{fid}", use_container_width=True):
                         st.query_params["folder"] = fid
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
-                with bc3:
+                with bc2:
                     st.markdown('<div class="del-btn">', unsafe_allow_html=True)
-                    if st.button(f"🗑️ Hapus", key=f"d_{fid}"):
+                    if st.button(f"🗑️ Hapus Project", key=f"d_{fid}", use_container_width=True):
                         manage_db("delete", name)
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
